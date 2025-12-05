@@ -2,7 +2,7 @@ const socket = io();
 let gameState = null, myId = null;
 
 const roomCodeEl = document.getElementById('roomCode'), score1El = document.getElementById('score1'), score2El = document.getElementById('score2');
-const turnIndicatorEl = document.getElementById('turnIndicator'), playersListEl = document.getElementById('playersList');
+const turnIndicatorEl = document.getElementById('turnIndicator'), playersCircleEl = document.getElementById('playersCircle');
 const halfSuitsStatusEl = document.getElementById('halfSuitsStatus'), handDisplayEl = document.getElementById('handDisplay');
 const gameLogEl = document.getElementById('gameLog'), notificationEl = document.getElementById('notification'), playerInfoEl = document.getElementById('playerInfo');
 const askPanelEl = document.getElementById('askPanel'), targetPlayerEl = document.getElementById('targetPlayer');
@@ -10,6 +10,7 @@ const cardToAskEl = document.getElementById('cardToAsk'), askBtnEl = document.ge
 const passPanelEl = document.getElementById('passPanel'), passTargetEl = document.getElementById('passTarget'), passBtnEl = document.getElementById('passBtn');
 const claimPanelEl = document.getElementById('claimPanel'), claimHalfSuitEl = document.getElementById('claimHalfSuit');
 const showClaimBtnEl = document.getElementById('showClaimBtn'), claimAssignmentsEl = document.getElementById('claimAssignments');
+const flyingCardEl = document.getElementById('flyingCard');
 
 const SUIT_SYMBOLS = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
 
@@ -28,6 +29,10 @@ socket.on('gameState', (state) => {
     renderGame();
 });
 
+socket.on('cardTransfer', (data) => {
+    animateCardTransfer(data.fromIndex, data.toIndex, data.card);
+});
+
 function renderGame() {
     if (!gameState) return;
     roomCodeEl.textContent = gameState.roomCode;
@@ -41,20 +46,80 @@ function renderGame() {
     turnIndicatorEl.textContent = isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`;
     turnIndicatorEl.parentElement.classList.toggle('your-turn', isMyTurn);
     
-    renderPlayers(); renderHalfSuitsStatus(); renderHand(); renderActionPanels(); renderLog();
+    renderPlayersCircle(); renderHalfSuitsStatus(); renderHand(); renderActionPanels(); renderLog();
 }
 
-function renderPlayers() {
-    playersListEl.innerHTML = '';
+function renderPlayersCircle() {
+    playersCircleEl.innerHTML = '';
+    const numPlayers = gameState.players.length;
+    const radius = 175; // Half of 350px circle
+    const centerX = 175;
+    const centerY = 175;
+    
     gameState.players.forEach((p, i) => {
-        const li = document.createElement('li');
-        li.className = `team-${p.team + 1}`;
-        if (i === gameState.currentTurn) li.classList.add('current-turn');
-        if (p.id === myId) li.classList.add('you');
-        const nameSpan = document.createElement('span'); nameSpan.textContent = p.name + (p.id === myId ? ' (You)' : '');
-        const countSpan = document.createElement('span'); countSpan.className = 'card-count'; countSpan.textContent = p.cardCount;
-        li.appendChild(nameSpan); li.appendChild(countSpan); playersListEl.appendChild(li);
+        const angle = (i / numPlayers) * 2 * Math.PI - Math.PI / 2; // Start at top
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        
+        const slot = document.createElement('div');
+        slot.className = `player-slot team-${p.team + 1}`;
+        slot.style.left = `${x}px`;
+        slot.style.top = `${y}px`;
+        slot.dataset.playerIndex = i;
+        
+        if (i === gameState.currentTurn) slot.classList.add('current-turn');
+        if (p.id === myId) slot.classList.add('you');
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'player-avatar';
+        
+        const nameEl = document.createElement('div');
+        nameEl.className = 'player-name-text';
+        nameEl.textContent = p.name + (p.id === myId ? ' (You)' : '');
+        
+        const countEl = document.createElement('div');
+        countEl.className = 'card-count-badge';
+        countEl.textContent = p.cardCount;
+        
+        avatar.appendChild(nameEl);
+        avatar.appendChild(countEl);
+        slot.appendChild(avatar);
+        playersCircleEl.appendChild(slot);
     });
+}
+
+function getPlayerPosition(playerIndex) {
+    const slot = playersCircleEl.querySelector(`[data-player-index="${playerIndex}"]`);
+    if (!slot) return { x: 0, y: 0 };
+    const rect = slot.getBoundingClientRect();
+    return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+    };
+}
+
+function animateCardTransfer(fromIndex, toIndex, card) {
+    const fromPos = getPlayerPosition(fromIndex);
+    const toPos = getPlayerPosition(toIndex);
+    
+    flyingCardEl.className = `flying-card ${card.suit}`;
+    flyingCardEl.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${SUIT_SYMBOLS[card.suit]}</span>`;
+    
+    // Set start position
+    flyingCardEl.style.left = `${fromPos.x}px`;
+    flyingCardEl.style.top = `${fromPos.y}px`;
+    flyingCardEl.classList.remove('hidden');
+    
+    // Trigger animation on next frame
+    requestAnimationFrame(() => {
+        flyingCardEl.style.left = `${toPos.x}px`;
+        flyingCardEl.style.top = `${toPos.y}px`;
+    });
+    
+    // Hide after animation
+    setTimeout(() => {
+        flyingCardEl.classList.add('hidden');
+    }, 600);
 }
 
 function renderHalfSuitsStatus() {

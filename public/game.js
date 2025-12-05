@@ -43,6 +43,12 @@ const SUIT_SYMBOLS = {
 // Connect and get ID
 socket.on('connect', () => {
     myId = socket.id;
+    // Request game state on connect
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomCode = urlParams.get('room');
+    if (roomCode) {
+        socket.emit('rejoinGame', roomCode);
+    }
 });
 
 // Redirect to lobby if not in game
@@ -58,7 +64,7 @@ socket.on('gameState', (state) => {
     }
     
     gameState = state;
-    myId = socket.id;
+    // Don't reset myId here - it's already set
     renderGame();
 });
 

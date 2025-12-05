@@ -43,12 +43,18 @@ const SUIT_SYMBOLS = {
 // Connect and get ID
 socket.on('connect', () => {
     myId = socket.id;
-    // Request game state on connect
+    
+    // Get room code from URL
     const urlParams = new URLSearchParams(window.location.search);
     const roomCode = urlParams.get('room');
-    if (roomCode) {
-        socket.emit('rejoinGame', roomCode);
+    
+    if (!roomCode) {
+        window.location.href = '/';
+        return;
     }
+    
+    // Emit rejoin to get game state
+    socket.emit('rejoinGame', roomCode);
 });
 
 // Redirect to lobby if not in game

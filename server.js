@@ -90,6 +90,16 @@ function createRoom(code) {
     };
 }
 
+// Emit card transfer animation to all players
+function broadcastCardTransfer(room, fromIndex, toIndex, card) {
+    room.players.forEach(player => {
+        const socket = io.sockets.sockets.get(player.socketId);
+        if (socket) {
+            socket.emit('cardTransfer', { fromIndex, toIndex, card });
+        }
+    });
+}
+
 // Deal cards to players
 function dealCards(room) {
     const deck = createDeck();
@@ -335,69 +345,36 @@ io.on('connection', (socket) => {
     });
     
     // Ask for a card
-    socket.on('askCard', (data, callback) => {
-        const { targetPlayerId, cardId } = data;
-        const room = rooms.get(socket.roomCode);
+socket.on('askCard', (data, callback) => {
+    const { targetPlayerId, cardId } = data;
+    const room = rooms.get(socket.roomCode);
+    
+    if (!room || !room.gameStarted) {
+        callback({ success: false, error: 'Game not in progress' });
+        return;
+    }
+    
+    const askerIndex = room.players.findIndex(p => p.id === socket.playerId);
+    const targetIndex = room.players.findIndex(p => p.id === targetPlayerId);
+    const asker = room.players[askerIndex];
+    const target = room.players[targetIndex];
+    
+    // ... all the validation checks ...
+    
+    // Check if target has the card
+    const targetCardIndex = target.hand.findIndex(c => c.id === cardId);
+    const cardDisplay = `${rank}${getSuitSymbol(suit)}`;
+    
+    if (targetCardIndex !== -1) {
+        // ========== ADD THIS SECTION HERE ==========
+        // Target has the card - transfer it
+        const [transferredCard] = target.hand.splice(targetCardIndex, 1);
         
-        if (!room || !room.gameStarted) {
-            callback({ success: false, error: 'Game not in progress' });
-            return;
-        }
+        // Emit card transfer animation BEFORE updating game state
+        broadcastCardTransfer(room, targetIndex, askerIndex, transferredCard);
         
-        const askerIndex = room.players.findIndex(p => p.id === socket.playerId);
-        const targetIndex = room.players.findIndex(p => p.id === targetPlayerId);
-        const asker = room.players[askerIndex];
-        const target = room.players[targetIndex];
-        
-        // Validate turn
-        if (room.currentTurn !== askerIndex) {
-            callback({ success: false, error: 'Not your turn' });
-            return;
-        }
-        
-        // Validate asker has cards
-        if (asker.hand.length === 0) {
-            callback({ success: false, error: 'You have no cards' });
-            return;
-        }
-        
-        // Validate target is on opposite team
-        if (getTeam(askerIndex) === getTeam(targetIndex)) {
-            callback({ success: false, error: 'Can only ask opponents' });
-            return;
-        }
-        
-        // Validate target has cards
-        if (target.hand.length === 0) {
-            callback({ success: false, error: 'Target has no cards' });
-            return;
-        }
-        
-        // Parse card
-        const [rank, suit] = cardId.split('_');
-        const card = { rank, suit, id: cardId };
-        const halfSuit = getHalfSuit(card);
-        
-        // Validate asker has a card in this half-suit
-        const hasHalfSuit = asker.hand.some(c => getHalfSuit(c) === halfSuit);
-        if (!hasHalfSuit) {
-            callback({ success: false, error: 'You don\'t have any cards in this half-suit' });
-            return;
-        }
-        
-        // Validate asker doesn't already have this card
-        if (asker.hand.some(c => c.id === cardId)) {
-            callback({ success: false, error: 'You already have this card' });
-            return;
-        }
-        
-        // Check if target has the card
-        const targetCardIndex = target.hand.findIndex(c => c.id === cardId);
-        const cardDisplay = `${rank}${getSuitSymbol(suit)}`;
-        
-        if (targetCardIndex !== -1) {
-            // Target has the card - transfer it
-            const [transferredCard] = target.hand.splice(targetCardIndex, 1);
+        // Wait a bit for animation to start before updating state
+        setTimeout(() => {
             asker.hand.push(transferredCard);
             // Sort hand
             asker.hand.sort((a, b) => {
@@ -410,17 +387,21 @@ io.on('connection', (socket) => {
             
             addLog(room, `${asker.name} asked ${target.name} for ${cardDisplay} ✓ Got it!`, 'success');
             // Asker goes again (turn stays the same)
-            callback({ success: true, got: true });
-        } else {
-            // Target doesn't have the card - turn passes to target
-            addLog(room, `${asker.name} asked ${target.name} for ${cardDisplay} ✗ Don't have it`, 'fail');
-            room.currentTurn = targetIndex;
-            addLog(room, `${target.name}'s turn`, 'turn');
-            callback({ success: true, got: false });
-        }
+            
+            broadcastGameState(room);
+        }, 100);
         
+        callback({ success: true, got: true });
+        // ========== END OF ADDITION ==========
+    } else {
+        // Target doesn't have the card - turn passes to target
+        addLog(room, `${asker.name} asked ${target.name} for ${cardDisplay} ✗ Don't have it`, 'fail');
+        room.currentTurn = targetIndex;
+        addLog(room, `${target.name}'s turn`, 'turn');
+        callback({ success: true, got: false });
         broadcastGameState(room);
-    });
+    }
+});
     
     // Make a claim
     socket.on('makeClaim', (data, callback) => {

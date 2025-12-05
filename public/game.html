@@ -8,83 +8,54 @@
 </head>
 <body>
     <div class="game-container">
-        <!-- Header -->
         <header class="game-header">
-            <div class="room-info">Room: <span id="roomCode"></span></div>
+            <div class="header-left">
+                <div id="playerInfo" class="player-info"></div>
+                <div class="room-info">Room: <span id="roomCode"></span></div>
+            </div>
             <div class="scores">
                 <span class="score team-1-bg">Team 1: <span id="score1">0</span></span>
                 <span class="score team-2-bg">Team 2: <span id="score2">0</span></span>
             </div>
-            <div class="turn-indicator">
-                <span id="turnIndicator"></span>
-            </div>
+            <div class="turn-indicator"><span id="turnIndicator"></span></div>
         </header>
-        
-        <!-- Main game area -->
         <div class="game-main">
-            <!-- Left: Players list -->
             <aside class="players-panel">
                 <h3>Players</h3>
                 <ul id="playersList"></ul>
-                
-                <div class="half-suits-status">
-                    <h4>Half-Suits</h4>
-                    <div id="halfSuitsStatus"></div>
-                </div>
+                <div class="half-suits-status"><h4>Half-Suits</h4><div id="halfSuitsStatus"></div></div>
             </aside>
-            
-            <!-- Center: Hand and actions -->
             <main class="center-panel">
-                <div class="hand-section">
-                    <h3>Your Hand</h3>
-                    <div id="handDisplay" class="hand-display"></div>
-                </div>
-                
+                <div class="hand-section"><h3>Your Hand</h3><div id="handDisplay" class="hand-display"></div></div>
                 <div class="actions-section">
-                    <!-- Ask Panel -->
                     <div id="askPanel" class="action-panel">
                         <h3>Ask for a Card</h3>
                         <div class="ask-form">
-                            <label>Ask:</label>
-                            <select id="targetPlayer"></select>
-                            <label>for:</label>
-                            <select id="cardToAsk"></select>
+                            <label>Ask:</label><select id="targetPlayer"></select>
+                            <label>for:</label><select id="cardToAsk"></select>
                             <button id="askBtn" class="btn btn-primary">Ask</button>
                         </div>
                     </div>
-                    
-                    <!-- Pass Panel (when no cards) -->
                     <div id="passPanel" class="action-panel hidden">
                         <h3>Pass Turn</h3>
                         <p>You have no cards. Pass to a teammate:</p>
                         <select id="passTarget"></select>
                         <button id="passBtn" class="btn btn-secondary">Pass Turn</button>
                     </div>
-                    
-                    <!-- Claim Panel -->
                     <div id="claimPanel" class="action-panel">
                         <h3>Make a Claim</h3>
                         <div class="claim-form">
-                            <label>Half-Suit:</label>
-                            <select id="claimHalfSuit"></select>
-                            <button id="showClaimBtn" class="btn btn-warning">Set Up Claim</button>
+                            <label>Half-Suit:</label><select id="claimHalfSuit"></select>
+                            <button id="showClaimBtn" class="btn btn-claim">Set Up Claim</button>
                         </div>
                         <div id="claimAssignments" class="claim-assignments hidden"></div>
                     </div>
                 </div>
             </main>
-            
-            <!-- Right: Game log -->
-            <aside class="log-panel">
-                <h3>Game Log</h3>
-                <div id="gameLog" class="game-log"></div>
-            </aside>
+            <aside class="log-panel"><h3>Game Log</h3><div id="gameLog" class="game-log"></div></aside>
         </div>
-        
-        <!-- Notification -->
         <div id="notification" class="notification hidden"></div>
     </div>
-    
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
 </body>

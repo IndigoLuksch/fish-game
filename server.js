@@ -27,6 +27,11 @@ function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// Add this helper at the top with other functions
+function generatePlayerId() {
+    return Math.random().toString(36).substring(2, 15);
+}
+
 // Generate 4-char room code
 function generateRoomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -195,10 +200,11 @@ io.on('connection', (socket) => {
         
         const room = createRoom(code);
         const player = {
-            id: socket.id,
-            socketId: socket.id,
+            id: generatePlayerId(), // Persistent ID
+            socketId: socket.id,    // Can change on reconnect
             name: playerName,
             hand: []
+        };
         };
         room.players.push(player);
         rooms.set(code, room);
@@ -230,8 +236,8 @@ io.on('connection', (socket) => {
         }
         
         const player = {
-            id: socket.id,
-            socketId: socket.id,
+            id: generatePlayerId(), // Persistent ID
+            socketId: socket.id,    // Can change on reconnect  
             name: playerName,
             hand: []
         };
@@ -273,20 +279,35 @@ io.on('connection', (socket) => {
 
     // Rejoin game (when page reloads)
     socket.on('rejoinGame', (roomCode, callback) => {
-        const room = rooms.get(roomCode);
-        if (!room) {
-            if (callback) callback({ success: false, error: 'Room not found' });
-            return;
+    const room = rooms.get(roomCode);
+    if (!room) {
+        if (callback) callback({ success: false, error: 'Room not found' });
+        return;
+    }
+    
+    // Try to find player by old socketId
+    let player = room.players.find(p => p.socketId === socket.id);
+    
+    // If not found, they might be reconnecting - find by disconnected status
+    if (!player) {
+        player = room.players.find(p => p.disconnected);
+        if (player) {
+            player.socketId = socket.id;
+            player.disconnected = false;
         }
-        
-        // Find player by socket ID or try to reconnect
+    }
+    
+    if (player) {
         socket.join(roomCode);
         socket.roomCode = roomCode;
+        socket.playerId = player.id; // Use persistent ID
         
+        socket.emit('gameState', getGameState(room, player.id));
         if (callback) callback({ success: true });
-        broadcastGameState(room);
-    });
-    
+    } else {
+        if (callback) callback({ success: false, error: 'Player not found in room' });
+    }
+});
     // Ask for a card
     socket.on('askCard', (data, callback) => {
         const { targetPlayerId, cardId } = data;

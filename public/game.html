@@ -20,11 +20,12 @@
             <div class="turn-indicator"><span id="turnIndicator"></span></div>
         </header>
         <div class="game-main">
-            <aside class="players-panel">
-                <h3>Players</h3>
-                <ul id="playersList"></ul>
-                <div class="half-suits-status"><h4>Half-Suits</h4><div id="halfSuitsStatus"></div></div>
-            </aside>
+            <div class="circle-container">
+                <div id="playersCircle" class="players-circle"></div>
+                <div class="center-info">
+                    <div class="half-suits-status"><h4>Half-Suits</h4><div id="halfSuitsStatus"></div></div>
+                </div>
+            </div>
             <main class="center-panel">
                 <div class="hand-section"><h3>Your Hand</h3><div id="handDisplay" class="hand-display"></div></div>
                 <div class="actions-section">
@@ -55,6 +56,7 @@
             <aside class="log-panel"><h3>Game Log</h3><div id="gameLog" class="game-log"></div></aside>
         </div>
         <div id="notification" class="notification hidden"></div>
+        <div id="flyingCard" class="flying-card hidden"></div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>

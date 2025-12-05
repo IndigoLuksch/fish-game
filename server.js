@@ -599,7 +599,7 @@ io.on('connection', (socket) => {
             }
         }
     });
-});
+);
 
 // Advance turn to next player with cards
 function advanceTurnIfNeeded(room) {

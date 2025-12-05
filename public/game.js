@@ -1,446 +1,185 @@
 const socket = io();
+let gameState = null, myId = null;
 
-// Game state
-let gameState = null;
-let myId = null;
+const roomCodeEl = document.getElementById('roomCode'), score1El = document.getElementById('score1'), score2El = document.getElementById('score2');
+const turnIndicatorEl = document.getElementById('turnIndicator'), playersListEl = document.getElementById('playersList');
+const halfSuitsStatusEl = document.getElementById('halfSuitsStatus'), handDisplayEl = document.getElementById('handDisplay');
+const gameLogEl = document.getElementById('gameLog'), notificationEl = document.getElementById('notification'), playerInfoEl = document.getElementById('playerInfo');
+const askPanelEl = document.getElementById('askPanel'), targetPlayerEl = document.getElementById('targetPlayer');
+const cardToAskEl = document.getElementById('cardToAsk'), askBtnEl = document.getElementById('askBtn');
+const passPanelEl = document.getElementById('passPanel'), passTargetEl = document.getElementById('passTarget'), passBtnEl = document.getElementById('passBtn');
+const claimPanelEl = document.getElementById('claimPanel'), claimHalfSuitEl = document.getElementById('claimHalfSuit');
+const showClaimBtnEl = document.getElementById('showClaimBtn'), claimAssignmentsEl = document.getElementById('claimAssignments');
 
-// DOM elements
-const roomCodeEl = document.getElementById('roomCode');
-const score1El = document.getElementById('score1');
-const score2El = document.getElementById('score2');
-const turnIndicatorEl = document.getElementById('turnIndicator');
-const playersListEl = document.getElementById('playersList');
-const halfSuitsStatusEl = document.getElementById('halfSuitsStatus');
-const handDisplayEl = document.getElementById('handDisplay');
-const gameLogEl = document.getElementById('gameLog');
-const notificationEl = document.getElementById('notification');
+const SUIT_SYMBOLS = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
 
-// Ask panel
-const askPanelEl = document.getElementById('askPanel');
-const targetPlayerEl = document.getElementById('targetPlayer');
-const cardToAskEl = document.getElementById('cardToAsk');
-const askBtnEl = document.getElementById('askBtn');
-
-// Pass panel
-const passPanelEl = document.getElementById('passPanel');
-const passTargetEl = document.getElementById('passTarget');
-const passBtnEl = document.getElementById('passBtn');
-
-// Claim panel
-const claimPanelEl = document.getElementById('claimPanel');
-const claimHalfSuitEl = document.getElementById('claimHalfSuit');
-const showClaimBtnEl = document.getElementById('showClaimBtn');
-const claimAssignmentsEl = document.getElementById('claimAssignments');
-
-// Suit symbols
-const SUIT_SYMBOLS = {
-    hearts: '♥',
-    diamonds: '♦',
-    clubs: '♣',
-    spades: '♠'
-};
-
-// Connect and get ID
 socket.on('connect', () => {
     myId = socket.id;
-    
-    // Get room code from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const roomCode = urlParams.get('room');
-    
-    if (!roomCode) {
-        window.location.href = '/';
-        return;
-    }
-    
-    // Emit rejoin to get game state
+    const roomCode = new URLSearchParams(window.location.search).get('room');
+    if (!roomCode) { window.location.href = '/'; return; }
     socket.emit('rejoinGame', roomCode);
 });
 
-// Redirect to lobby if not in game
-socket.on('disconnect', () => {
-    window.location.href = '/';
-});
+socket.on('disconnect', () => { window.location.href = '/'; });
 
-// Handle game state updates
 socket.on('gameState', (state) => {
-    if (!state.gameStarted) {
-        window.location.href = '/';
-        return;
-    }
-    
+    if (!state.gameStarted) { window.location.href = '/'; return; }
     gameState = state;
-    // Don't reset myId here - it's already set
     renderGame();
 });
 
 function renderGame() {
     if (!gameState) return;
-    
-    // Header
     roomCodeEl.textContent = gameState.roomCode;
     score1El.textContent = gameState.scores[0];
     score2El.textContent = gameState.scores[1];
     
-    // Turn indicator
-    const currentPlayer = gameState.players[gameState.currentTurn];
-    const isMyTurn = gameState.currentTurn === gameState.myIndex;
+    const me = gameState.players[gameState.myIndex];
+    if (me && playerInfoEl) playerInfoEl.innerHTML = `<span class="player-name">${me.name}</span> <span class="team-badge team-${me.team + 1}-bg">Team ${me.team + 1}</span>`;
     
-    if (isMyTurn) {
-        turnIndicatorEl.textContent = "Your Turn!";
-        turnIndicatorEl.parentElement.classList.add('your-turn');
-    } else {
-        turnIndicatorEl.textContent = `${currentPlayer.name}'s Turn`;
-        turnIndicatorEl.parentElement.classList.remove('your-turn');
-    }
+    const currentPlayer = gameState.players[gameState.currentTurn], isMyTurn = gameState.currentTurn === gameState.myIndex;
+    turnIndicatorEl.textContent = isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`;
+    turnIndicatorEl.parentElement.classList.toggle('your-turn', isMyTurn);
     
-    // Players list
-    renderPlayers();
-    
-    // Half-suits status
-    renderHalfSuitsStatus();
-    
-    // Hand
-    renderHand();
-    
-    // Action panels
-    renderActionPanels();
-    
-    // Game log
-    renderLog();
+    renderPlayers(); renderHalfSuitsStatus(); renderHand(); renderActionPanels(); renderLog();
 }
 
 function renderPlayers() {
     playersListEl.innerHTML = '';
-    
-    gameState.players.forEach((player, idx) => {
+    gameState.players.forEach((p, i) => {
         const li = document.createElement('li');
-        li.className = `team-${player.team + 1}`;
-        
-        if (idx === gameState.currentTurn) {
-            li.classList.add('current-turn');
-        }
-        if (player.id === myId) {
-            li.classList.add('you');
-        }
-        
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = player.name + (player.id === myId ? ' (You)' : '');
-        
-        const countSpan = document.createElement('span');
-        countSpan.className = 'card-count';
-        countSpan.textContent = player.cardCount;
-        
-        li.appendChild(nameSpan);
-        li.appendChild(countSpan);
-        playersListEl.appendChild(li);
+        li.className = `team-${p.team + 1}`;
+        if (i === gameState.currentTurn) li.classList.add('current-turn');
+        if (p.id === myId) li.classList.add('you');
+        const nameSpan = document.createElement('span'); nameSpan.textContent = p.name + (p.id === myId ? ' (You)' : '');
+        const countSpan = document.createElement('span'); countSpan.className = 'card-count'; countSpan.textContent = p.cardCount;
+        li.appendChild(nameSpan); li.appendChild(countSpan); playersListEl.appendChild(li);
     });
 }
 
 function renderHalfSuitsStatus() {
     halfSuitsStatusEl.innerHTML = '';
-    
     gameState.halfSuits.forEach(hs => {
-        const div = document.createElement('div');
-        div.className = 'hs-item';
-        
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = hs.display;
-        
+        const div = document.createElement('div'); div.className = 'hs-item';
+        const nameSpan = document.createElement('span'); nameSpan.textContent = hs.display;
         const statusSpan = document.createElement('span');
-        
-        if (gameState.claimedSuits.includes(hs.name)) {
-            // Find which team claimed it based on log (simplified: just mark as claimed)
-            div.classList.add('claimed-1'); // Could track actual team
-            statusSpan.textContent = '✓';
-        } else if (gameState.middleSuits.includes(hs.name)) {
-            div.classList.add('middle');
-            statusSpan.textContent = '○';
-        } else {
-            statusSpan.textContent = '—';
-        }
-        
-        div.appendChild(nameSpan);
-        div.appendChild(statusSpan);
-        halfSuitsStatusEl.appendChild(div);
+        if (gameState.claimedSuits.includes(hs.name)) { div.classList.add('claimed-1'); statusSpan.textContent = '✓'; }
+        else if (gameState.middleSuits.includes(hs.name)) { div.classList.add('middle'); statusSpan.textContent = '○'; }
+        else statusSpan.textContent = '—';
+        div.appendChild(nameSpan); div.appendChild(statusSpan); halfSuitsStatusEl.appendChild(div);
     });
 }
 
 function renderHand() {
     handDisplayEl.innerHTML = '';
-    
-    if (gameState.hand.length === 0) {
-        handDisplayEl.innerHTML = '<p style="color: #888;">You have no cards</p>';
-        return;
-    }
-    
-    // Group by half-suit
+    if (!gameState.hand.length) { handDisplayEl.innerHTML = '<p style="color: #7a8ba3;">You have no cards</p>'; return; }
     const groups = {};
-    gameState.hand.forEach(card => {
-        const hs = getHalfSuit(card);
-        if (!groups[hs]) groups[hs] = [];
-        groups[hs].push(card);
-    });
-    
+    gameState.hand.forEach(c => { const hs = getHalfSuit(c); if (!groups[hs]) groups[hs] = []; groups[hs].push(c); });
     Object.entries(groups).forEach(([hsName, cards]) => {
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'half-suit-group';
-        
+        const groupDiv = document.createElement('div'); groupDiv.className = 'half-suit-group';
         const hsInfo = gameState.halfSuits.find(h => h.name === hsName);
-        const label = document.createElement('div');
-        label.className = 'half-suit-label';
-        label.textContent = hsInfo ? hsInfo.display : hsName;
+        const label = document.createElement('div'); label.className = 'half-suit-label'; label.textContent = hsInfo ? hsInfo.display : hsName;
         groupDiv.appendChild(label);
-        
-        const cardsRow = document.createElement('div');
-        cardsRow.className = 'cards-row';
-        
+        const cardsRow = document.createElement('div'); cardsRow.className = 'cards-row';
         cards.forEach(card => {
-            const cardEl = document.createElement('div');
-            cardEl.className = `card ${card.suit}`;
-            cardEl.innerHTML = `
-                <span class="rank">${card.rank}</span>
-                <span class="suit">${SUIT_SYMBOLS[card.suit]}</span>
-            `;
+            const cardEl = document.createElement('div'); cardEl.className = `card ${card.suit}`;
+            cardEl.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${SUIT_SYMBOLS[card.suit]}</span>`;
             cardEl.onclick = () => selectCardToAsk(card);
             cardsRow.appendChild(cardEl);
         });
-        
-        groupDiv.appendChild(cardsRow);
-        handDisplayEl.appendChild(groupDiv);
+        groupDiv.appendChild(cardsRow); handDisplayEl.appendChild(groupDiv);
     });
 }
 
 function selectCardToAsk(card) {
-    // Find cards in same half-suit that we can ask for
     const hs = getHalfSuit(card);
-    const validCards = gameState.validAsks.filter(c => getHalfSuit(c) === hs);
-    
-    if (validCards.length > 0) {
-        // Find this half-suit's cards in dropdown
-        for (let i = 0; i < cardToAskEl.options.length; i++) {
-            if (cardToAskEl.options[i].value.endsWith(`_${card.suit}`) && 
-                getHalfSuit({ rank: cardToAskEl.options[i].value.split('_')[0], suit: card.suit }) === hs) {
-                cardToAskEl.selectedIndex = i;
-                break;
-            }
-        }
+    for (let i = 0; i < cardToAskEl.options.length; i++) {
+        const [r, s] = cardToAskEl.options[i].value.split('_');
+        if (s === card.suit && getHalfSuit({ rank: r, suit: s }) === hs) { cardToAskEl.selectedIndex = i; break; }
     }
 }
 
 function renderActionPanels() {
-    const isMyTurn = gameState.currentTurn === gameState.myIndex;
-    const hasCards = gameState.hand.length > 0;
-    const myTeam = gameState.myTeam;
-    const currentTurnTeam = gameState.players[gameState.currentTurn].team;
-    const canClaim = myTeam === currentTurnTeam;
+    const isMyTurn = gameState.currentTurn === gameState.myIndex, hasCards = gameState.hand.length > 0;
+    const myTeam = gameState.myTeam, currentTurnTeam = gameState.players[gameState.currentTurn].team, canClaim = myTeam === currentTurnTeam;
     
-    // Ask panel
     if (hasCards && isMyTurn) {
-        askPanelEl.classList.remove('disabled', 'hidden');
-        passPanelEl.classList.add('hidden');
-        
-        // Populate opponents
+        askPanelEl.classList.remove('disabled', 'hidden'); passPanelEl.classList.add('hidden');
         targetPlayerEl.innerHTML = '';
-        gameState.opponents.forEach(opp => {
-            const opt = document.createElement('option');
-            opt.value = opp.id;
-            opt.textContent = `${opp.name} (${opp.cardCount} cards)`;
-            targetPlayerEl.appendChild(opt);
-        });
-        
-        // Populate valid cards
+        gameState.opponents.forEach(o => { const opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.name; targetPlayerEl.appendChild(opt); });
         cardToAskEl.innerHTML = '';
-        gameState.validAsks.forEach(card => {
-            const opt = document.createElement('option');
-            opt.value = card.id;
-            opt.textContent = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
-            cardToAskEl.appendChild(opt);
-        });
-        
-        askBtnEl.disabled = gameState.opponents.length === 0 || gameState.validAsks.length === 0;
+        gameState.validAsks.forEach(c => { const opt = document.createElement('option'); opt.value = c.id; opt.textContent = `${c.rank}${SUIT_SYMBOLS[c.suit]}`; cardToAskEl.appendChild(opt); });
+        askBtnEl.disabled = !gameState.opponents.length || !gameState.validAsks.length;
     } else if (!hasCards && isMyTurn) {
-        askPanelEl.classList.add('hidden');
-        passPanelEl.classList.remove('hidden');
-        
-        // Populate teammates
+        askPanelEl.classList.add('hidden'); passPanelEl.classList.remove('hidden');
         passTargetEl.innerHTML = '';
-        gameState.players.forEach((p, idx) => {
-            if (p.team === myTeam && p.id !== myId && p.cardCount > 0) {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.name;
-                passTargetEl.appendChild(opt);
-            }
-        });
-        
-        passBtnEl.disabled = passTargetEl.options.length === 0;
-    } else {
-        askPanelEl.classList.add('disabled');
-        passPanelEl.classList.add('hidden');
-    }
+        gameState.players.forEach(p => { if (p.team === myTeam && p.id !== myId && p.cardCount > 0) { const opt = document.createElement('option'); opt.value = p.id; opt.textContent = p.name; passTargetEl.appendChild(opt); } });
+        passBtnEl.disabled = !passTargetEl.options.length;
+    } else { askPanelEl.classList.add('disabled'); passPanelEl.classList.add('hidden'); }
     
-    // Claim panel
     if (canClaim) {
         claimPanelEl.classList.remove('disabled');
-        
-        // Populate claimable half-suits (ones I have cards in, not yet claimed)
         claimHalfSuitEl.innerHTML = '';
-        const myHalfSuits = new Set(gameState.hand.map(c => getHalfSuit(c)));
-        
-        gameState.halfSuits.forEach(hs => {
-            if (!gameState.claimedSuits.includes(hs.name) && !gameState.middleSuits.includes(hs.name)) {
-                const opt = document.createElement('option');
-                opt.value = hs.name;
-                opt.textContent = hs.display;
-                claimHalfSuitEl.appendChild(opt);
-            }
-        });
-        
-        showClaimBtnEl.disabled = claimHalfSuitEl.options.length === 0;
-    } else {
-        claimPanelEl.classList.add('disabled');
-    }
-    
-    // Reset claim assignments when not visible
-    if (!canClaim) {
-        claimAssignmentsEl.classList.add('hidden');
-    }
+        gameState.halfSuits.forEach(hs => { if (!gameState.claimedSuits.includes(hs.name) && !gameState.middleSuits.includes(hs.name)) { const opt = document.createElement('option'); opt.value = hs.name; opt.textContent = hs.display; claimHalfSuitEl.appendChild(opt); } });
+        showClaimBtnEl.disabled = !claimHalfSuitEl.options.length;
+    } else claimPanelEl.classList.add('disabled');
+    if (!canClaim) claimAssignmentsEl.classList.add('hidden');
 }
 
 function renderLog() {
     gameLogEl.innerHTML = '';
-    
-    // Show most recent first (reversed)
-    [...gameState.log].reverse().forEach(entry => {
-        const div = document.createElement('div');
-        div.className = `log-entry ${entry.type}`;
-        div.textContent = entry.message;
+    const entries = [...gameState.log].reverse();
+    let askCount = 0;
+    entries.forEach(entry => {
+        const div = document.createElement('div'); div.className = `log-entry ${entry.type}`;
+        const isAsk = entry.type === 'success' || entry.type === 'fail';
+        if (isAsk) { askCount++; div.textContent = askCount > 2 ? entry.message.replace(/for .+? (✓|✗)/, 'for ??? $1') : entry.message; }
+        else div.textContent = entry.message;
         gameLogEl.appendChild(div);
     });
 }
 
-function getHalfSuit(card) {
-    const lowRanks = ['2', '3', '4', '5', '6', '7'];
-    const isLow = lowRanks.includes(card.rank);
-    return `${isLow ? 'low' : 'high'}_${card.suit}`;
+function getHalfSuit(card) { return `${['2','3','4','5','6','7'].includes(card.rank) ? 'low' : 'high'}_${card.suit}`; }
+
+function showNotification(msg, type = 'info') {
+    notificationEl.textContent = msg; notificationEl.className = `notification ${type}`; notificationEl.classList.remove('hidden');
+    setTimeout(() => notificationEl.classList.add('hidden'), 3000);
 }
 
-function showNotification(message, type = 'info') {
-    notificationEl.textContent = message;
-    notificationEl.className = `notification ${type}`;
-    notificationEl.classList.remove('hidden');
-    
-    setTimeout(() => {
-        notificationEl.classList.add('hidden');
-    }, 3000);
-}
-
-// Event handlers
 askBtnEl.addEventListener('click', () => {
-    const targetId = targetPlayerEl.value;
-    const cardId = cardToAskEl.value;
-    
-    if (!targetId || !cardId) {
-        showNotification('Select a player and card', 'error');
-        return;
-    }
-    
-    socket.emit('askCard', { targetPlayerId: targetId, cardId }, (response) => {
-        if (!response.success) {
-            showNotification(response.error, 'error');
-        } else if (response.got) {
-            showNotification('Got the card! Go again!', 'success');
-        }
-    });
+    const targetId = targetPlayerEl.value, cardId = cardToAskEl.value;
+    if (!targetId || !cardId) return showNotification('Select a player and card', 'error');
+    socket.emit('askCard', { targetPlayerId: targetId, cardId }, (r) => { if (!r.success) showNotification(r.error, 'error'); else if (r.got) showNotification('Got the card! Go again!', 'success'); });
 });
 
 passBtnEl.addEventListener('click', () => {
     const targetId = passTargetEl.value;
-    
-    if (!targetId) {
-        showNotification('Select a teammate', 'error');
-        return;
-    }
-    
-    socket.emit('passTurn', { targetPlayerId: targetId }, (response) => {
-        if (!response.success) {
-            showNotification(response.error, 'error');
-        }
-    });
+    if (!targetId) return showNotification('Select a teammate', 'error');
+    socket.emit('passTurn', { targetPlayerId: targetId }, (r) => { if (!r.success) showNotification(r.error, 'error'); });
 });
 
 showClaimBtnEl.addEventListener('click', () => {
-    const hsName = claimHalfSuitEl.value;
-    if (!hsName) return;
-    
-    const hsInfo = gameState.halfSuits.find(h => h.name === hsName);
-    if (!hsInfo) return;
-    
-    // Show assignment UI
-    claimAssignmentsEl.innerHTML = '';
-    claimAssignmentsEl.classList.remove('hidden');
-    
-    const ranks = hsInfo.ranks;
-    const suit = hsInfo.suit;
-    
-    ranks.forEach(rank => {
-        const row = document.createElement('div');
-        row.className = 'claim-row';
-        
-        const label = document.createElement('span');
-        label.className = `claim-card-label ${suit}`;
-        label.textContent = `${rank}${SUIT_SYMBOLS[suit]}`;
-        
-        const select = document.createElement('select');
-        select.className = 'claim-player-select';
-        select.dataset.cardId = `${rank}_${suit}`;
-        
-        gameState.players.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = p.name;
-            select.appendChild(opt);
-        });
-        
-        row.appendChild(label);
-        row.appendChild(select);
-        claimAssignmentsEl.appendChild(row);
+    const hsName = claimHalfSuitEl.value; if (!hsName) return;
+    const hsInfo = gameState.halfSuits.find(h => h.name === hsName); if (!hsInfo) return;
+    claimAssignmentsEl.innerHTML = ''; claimAssignmentsEl.classList.remove('hidden');
+    hsInfo.ranks.forEach(rank => {
+        const row = document.createElement('div'); row.className = 'claim-row';
+        const label = document.createElement('span'); label.className = `claim-card-label ${hsInfo.suit}`; label.textContent = `${rank}${SUIT_SYMBOLS[hsInfo.suit]}`;
+        const select = document.createElement('select'); select.className = 'claim-player-select'; select.dataset.cardId = `${rank}_${hsInfo.suit}`;
+        gameState.players.forEach(p => { const opt = document.createElement('option'); opt.value = p.id; opt.textContent = p.name; select.appendChild(opt); });
+        row.appendChild(label); row.appendChild(select); claimAssignmentsEl.appendChild(row);
     });
-    
-    // Add submit button
-    const submitBtn = document.createElement('button');
-    submitBtn.id = 'submitClaimBtn';
-    submitBtn.className = 'btn btn-warning';
-    submitBtn.textContent = 'Submit Claim';
-    submitBtn.onclick = submitClaim;
+    const submitBtn = document.createElement('button'); submitBtn.className = 'btn btn-claim'; submitBtn.textContent = 'Submit Claim'; submitBtn.onclick = submitClaim;
     claimAssignmentsEl.appendChild(submitBtn);
 });
 
 function submitClaim() {
-    const hsName = claimHalfSuitEl.value;
-    const selects = claimAssignmentsEl.querySelectorAll('.claim-player-select');
-    
-    const assignments = {};
-    selects.forEach(sel => {
-        assignments[sel.dataset.cardId] = sel.value;
-    });
-    
-    socket.emit('makeClaim', { halfSuit: hsName, assignments }, (response) => {
-        if (!response.success) {
-            showNotification(response.error, 'error');
-        } else {
-            claimAssignmentsEl.classList.add('hidden');
-            showNotification(response.result, response.result.includes('correctly') ? 'success' : 'error');
-        }
+    const hsName = claimHalfSuitEl.value, assignments = {};
+    claimAssignmentsEl.querySelectorAll('.claim-player-select').forEach(s => { assignments[s.dataset.cardId] = s.value; });
+    socket.emit('makeClaim', { halfSuit: hsName, assignments }, (r) => {
+        if (!r.success) showNotification(r.error, 'error');
+        else { claimAssignmentsEl.classList.add('hidden'); showNotification(r.result, r.result.includes('correctly') ? 'success' : 'error'); }
     });
 }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.target.matches('select')) {
-        if (!askPanelEl.classList.contains('disabled') && !askPanelEl.classList.contains('hidden')) {
-            askBtnEl.click();
-        }
-    }
-});
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.target.matches('select') && !askPanelEl.classList.contains('disabled') && !askPanelEl.classList.contains('hidden')) askBtnEl.click(); });

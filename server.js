@@ -205,7 +205,7 @@ io.on('connection', (socket) => {
             name: playerName,
             hand: []
         };
-    };
+    });
         room.players.push(player);
         rooms.set(code, room);
         

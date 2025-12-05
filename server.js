@@ -270,6 +270,22 @@ io.on('connection', (socket) => {
         callback({ success: true });
         broadcastGameState(room);
     });
+
+    // Rejoin game (when page reloads)
+    socket.on('rejoinGame', (roomCode, callback) => {
+        const room = rooms.get(roomCode);
+        if (!room) {
+            if (callback) callback({ success: false, error: 'Room not found' });
+            return;
+        }
+        
+        // Find player by socket ID or try to reconnect
+        socket.join(roomCode);
+        socket.roomCode = roomCode;
+        
+        if (callback) callback({ success: true });
+        broadcastGameState(room);
+    });
     
     // Ask for a card
     socket.on('askCard', (data, callback) => {

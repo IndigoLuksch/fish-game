@@ -121,9 +121,10 @@
         
         socket.on('gameState', (state) => {
             if (state.gameStarted) {
-                window.location.href = '/game.html';
+                window.location.href = `/game.html?room=${state.roomCode}`;
                 return;
             }
+
             
             playersList.innerHTML = '';
             state.players.forEach((player, idx) => {

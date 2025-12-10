@@ -358,9 +358,62 @@ socket.on('askCard', (data, callback) => {
     const targetIndex = room.players.findIndex(p => p.id === targetPlayerId);
     const asker = room.players[askerIndex];
     const target = room.players[targetIndex];
-    
-    // ... all the validation checks ...
-    
+
+    // Validation checks
+    if (!asker || !target) {
+        callback({ success: false, error: 'Player not found' });
+        return;
+    }
+
+    if (room.currentTurn !== askerIndex) {
+        callback({ success: false, error: 'Not your turn' });
+        return;
+    }
+
+    if (asker.hand.length === 0) {
+        callback({ success: false, error: 'You have no cards' });
+        return;
+    }
+
+    // Parse card ID
+    const [rank, suit] = cardId.split('_');
+    if (!rank || !suit) {
+        callback({ success: false, error: 'Invalid card' });
+        return;
+    }
+
+    const halfSuit = getHalfSuit({ rank, suit });
+
+    // Check if asker has at least one card in the same half-suit
+    const hasHalfSuit = asker.hand.some(c => getHalfSuit(c) === halfSuit);
+    if (!hasHalfSuit) {
+        callback({ success: false, error: 'You must have a card in the same half-suit' });
+        return;
+    }
+
+    // Check if asking for a card they already have
+    if (asker.hand.some(c => c.id === cardId)) {
+        callback({ success: false, error: 'You already have that card' });
+        return;
+    }
+
+    // Check if half-suit is already claimed or in middle
+    if (room.claimedSuits.includes(halfSuit) || room.middleSuits.includes(halfSuit)) {
+        callback({ success: false, error: 'That half-suit is already claimed' });
+        return;
+    }
+
+    // Check if target is on different team
+    if (getTeam(askerIndex) === getTeam(targetIndex)) {
+        callback({ success: false, error: 'Cannot ask your own teammate' });
+        return;
+    }
+
+    if (target.hand.length === 0) {
+        callback({ success: false, error: 'Target has no cards' });
+        return;
+    }
+
     // Check if target has the card
     const targetCardIndex = target.hand.findIndex(c => c.id === cardId);
     const cardDisplay = `${rank}${getSuitSymbol(suit)}`;

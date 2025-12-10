@@ -13,7 +13,8 @@
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-medium) 100%); color: var(--text-primary); min-height: 100vh; }
 
 /* Circular player layout */
-.circle-container { width: 400px; min-width: 400px; position: relative; padding: 2rem; display: flex; align-items: center; justify-content: center; }
+.circle-row { display: flex; justify-content: center; align-items: center; padding: 1rem 0; background: var(--bg-dark); }
+.circle-container { position: relative; display: flex; align-items: center; justify-content: center; }
 .players-circle { position: relative; width: 350px; height: 350px; }
 .player-slot { position: absolute; width: 80px; height: 80px; transform: translate(-50%, -50%); transition: all 0.3s ease; }
 .player-avatar { width: 100%; height: 100%; border-radius: 50%; background: var(--bg-medium); border: 3px solid var(--border-light); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.5rem; transition: all 0.3s ease; cursor: pointer; }
@@ -21,6 +22,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .player-slot.team-2 .player-avatar { border-color: var(--team-2); background: var(--team-2-light); }
 .player-slot.current-turn .player-avatar { box-shadow: 0 0 20px rgba(16, 185, 129, 0.6); border-width: 4px; animation: pulse-glow 1.5s infinite; }
 .player-slot.you .player-avatar { border-color: var(--accent-teal); border-width: 4px; }
+.player-name-text { font-size: 0.7rem; font-weight: 600; text-align: center; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70px; }
+.card-count-badge { background: var(--bg-dark); padding: 0.15rem 0.4rem; border-radius: 8px; font-size: 0.65rem; font-weight: bold; color: var(--accent-gold); margin-top: 0.15rem; }
 @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.6); } 50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.9); } }
 
 /* Flying card animation */
@@ -79,7 +82,8 @@ input[type="text"]:focus { outline: none; border-color: var(--accent-teal); box-
 .turn-indicator.your-turn { color: var(--success); animation: pulse 1.5s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-.game-main { display: flex; flex: 1; overflow: hidden; }
+.game-main { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.content-row { display: flex; flex: 1; overflow: hidden; }
 .players-panel { width: 200px; background: var(--bg-panel); padding: 1rem; overflow-y: auto; border-right: 1px solid var(--border-subtle); }
 .players-panel h3, .players-panel h4 { margin-bottom: 0.75rem; font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
 .players-panel ul { list-style: none; }
@@ -89,11 +93,6 @@ input[type="text"]:focus { outline: none; border-color: var(--accent-teal); box-
 .players-panel li.current-turn { background: rgba(255, 255, 255, 0.1); font-weight: bold; }
 .players-panel li.you { background: rgba(61, 139, 139, 0.15); }
 .card-count { background: var(--bg-light); padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; color: var(--text-secondary); }
-.half-suits-status { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); }
-.hs-item { display: flex; justify-content: space-between; padding: 0.25rem 0; font-size: 0.8rem; color: var(--text-secondary); }
-.hs-item.claimed-1 { color: var(--team-1); }
-.hs-item.claimed-2 { color: var(--team-2); }
-.hs-item.middle { color: var(--text-muted); }
 
 .center-panel { flex: 1; display: flex; flex-direction: column; padding: 1rem; overflow-y: auto; background: var(--bg-dark); }
 .hand-section { margin-bottom: 1.5rem; }
@@ -140,10 +139,8 @@ input[type="text"]:focus { outline: none; border-color: var(--accent-teal); box-
 .notification.error { border-color: var(--error); color: var(--error); }
 
 @media (max-width: 900px) {
-    .game-main { flex-direction: column; }
-    .players-panel, .log-panel { width: 100%; max-height: 150px; border: none; border-bottom: 1px solid var(--border-subtle); }
-    .players-panel ul { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .half-suits-status { display: none; }
+    .content-row { flex-direction: column; }
+    .log-panel { width: 100%; max-height: 150px; border: none; border-bottom: 1px solid var(--border-subtle); }
     .header-left { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
 }
 @media (max-width: 600px) {

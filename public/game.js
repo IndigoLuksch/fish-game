@@ -1,9 +1,16 @@
 const socket = io();
 let gameState = null, myId = null;
 
+// Constants
+const CIRCLE_RADIUS = 175; // Half of 350px circle
+const CIRCLE_CENTER_X = 175;
+const CIRCLE_CENTER_Y = 175;
+const ANIMATION_DURATION = 600; // milliseconds
+const NOTIFICATION_DURATION = 3000; // milliseconds
+
 const roomCodeEl = document.getElementById('roomCode'), score1El = document.getElementById('score1'), score2El = document.getElementById('score2');
 const turnIndicatorEl = document.getElementById('turnIndicator'), playersCircleEl = document.getElementById('playersCircle');
-const halfSuitsStatusEl = document.getElementById('halfSuitsStatus'), handDisplayEl = document.getElementById('handDisplay');
+const handDisplayEl = document.getElementById('handDisplay');
 const gameLogEl = document.getElementById('gameLog'), notificationEl = document.getElementById('notification'), playerInfoEl = document.getElementById('playerInfo');
 const askPanelEl = document.getElementById('askPanel'), targetPlayerEl = document.getElementById('targetPlayer');
 const cardToAskEl = document.getElementById('cardToAsk'), askBtnEl = document.getElementById('askBtn');
@@ -24,12 +31,20 @@ socket.on('connect', () => {
 socket.on('disconnect', () => { window.location.href = '/'; });
 
 socket.on('gameState', (state) => {
+    if (!state) {
+        console.error('Received null game state');
+        return;
+    }
     if (!state.gameStarted) { window.location.href = '/'; return; }
     gameState = state;
     renderGame();
 });
 
 socket.on('cardTransfer', (data) => {
+    if (!data || data.fromIndex === undefined || data.toIndex === undefined || !data.card) {
+        console.error('Invalid card transfer data', data);
+        return;
+    }
     animateCardTransfer(data.fromIndex, data.toIndex, data.card);
 });
 
@@ -46,20 +61,17 @@ function renderGame() {
     turnIndicatorEl.textContent = isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`;
     turnIndicatorEl.parentElement.classList.toggle('your-turn', isMyTurn);
     
-    renderPlayersCircle(); renderHalfSuitsStatus(); renderHand(); renderActionPanels(); renderLog();
+    renderPlayersCircle(); renderHand(); renderActionPanels(); renderLog();
 }
 
 function renderPlayersCircle() {
     playersCircleEl.innerHTML = '';
     const numPlayers = gameState.players.length;
-    const radius = 175; // Half of 350px circle
-    const centerX = 175;
-    const centerY = 175;
     
     gameState.players.forEach((p, i) => {
         const angle = (i / numPlayers) * 2 * Math.PI - Math.PI / 2; // Start at top
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
+        const x = CIRCLE_CENTER_X + CIRCLE_RADIUS * Math.cos(angle);
+        const y = CIRCLE_CENTER_Y + CIRCLE_RADIUS * Math.sin(angle);
         
         const slot = document.createElement('div');
         slot.className = `player-slot team-${p.team + 1}`;
@@ -119,20 +131,7 @@ function animateCardTransfer(fromIndex, toIndex, card) {
     // Hide after animation
     setTimeout(() => {
         flyingCardEl.classList.add('hidden');
-    }, 600);
-}
-
-function renderHalfSuitsStatus() {
-    halfSuitsStatusEl.innerHTML = '';
-    gameState.halfSuits.forEach(hs => {
-        const div = document.createElement('div'); div.className = 'hs-item';
-        const nameSpan = document.createElement('span'); nameSpan.textContent = hs.display;
-        const statusSpan = document.createElement('span');
-        if (gameState.claimedSuits.includes(hs.name)) { div.classList.add('claimed-1'); statusSpan.textContent = '✓'; }
-        else if (gameState.middleSuits.includes(hs.name)) { div.classList.add('middle'); statusSpan.textContent = '○'; }
-        else statusSpan.textContent = '—';
-        div.appendChild(nameSpan); div.appendChild(statusSpan); halfSuitsStatusEl.appendChild(div);
-    });
+    }, ANIMATION_DURATION);
 }
 
 function renderHand() {
@@ -208,7 +207,7 @@ function getHalfSuit(card) { return `${['2','3','4','5','6','7'].includes(card.r
 
 function showNotification(msg, type = 'info') {
     notificationEl.textContent = msg; notificationEl.className = `notification ${type}`; notificationEl.classList.remove('hidden');
-    setTimeout(() => notificationEl.classList.add('hidden'), 3000);
+    setTimeout(() => notificationEl.classList.add('hidden'), NOTIFICATION_DURATION);
 }
 
 askBtnEl.addEventListener('click', () => {

@@ -153,9 +153,12 @@ function getOpponents(playerIndex, room) {
         .filter((p, idx) => getTeam(idx) !== myTeam && p.hand.length > 0);
 }
 
-// Add log entry
+// Add log entry (keep last 100 entries to prevent memory issues)
 function addLog(room, message, type = 'info') {
     room.log.push({ message, type, timestamp: Date.now() });
+    if (room.log.length > 100) {
+        room.log.shift(); // Remove oldest entry
+    }
 }
 
 // Get game state for a specific player
@@ -313,42 +316,53 @@ io.on('connection', (socket) => {
     });
     
     // Rejoin game (when page reloads)
-    socket.on('rejoinGame', (roomCode, callback) => {
-        const room = rooms.get(roomCode);
-        if (!room) {
-            if (callback) callback({ success: false, error: 'Room not found' });
+    socket.on('rejoinGame', (roomCode) => {
+        if (!roomCode) {
+            console.error('rejoinGame called without room code');
             return;
         }
-        
+
+        const room = rooms.get(roomCode);
+        if (!room) {
+            console.log(`Room not found: ${roomCode}`);
+            return;
+        }
+
         // Try to find player by old socketId
         let player = room.players.find(p => p.socketId === socket.id);
-        
+
         // If not found, they might be reconnecting - find by disconnected status
         if (!player) {
             player = room.players.find(p => p.disconnected);
             if (player) {
                 player.socketId = socket.id;
                 player.disconnected = false;
+                addLog(room, `${player.name} reconnected`, 'system');
             }
         }
-        
+
         if (player) {
             socket.join(roomCode);
             socket.roomCode = roomCode;
             socket.playerId = player.id; // Use persistent ID
-            
+
             socket.emit('gameState', getGameState(room, player.id));
-            if (callback) callback({ success: true });
+            broadcastGameState(room);
         } else {
-            if (callback) callback({ success: false, error: 'Player not found in room' });
+            console.log(`Player not found in room ${roomCode}`);
         }
     });
     
     // Ask for a card
 socket.on('askCard', (data, callback) => {
+    if (!data || !callback) {
+        console.error('askCard called with invalid parameters');
+        return;
+    }
+
     const { targetPlayerId, cardId } = data;
     const room = rooms.get(socket.roomCode);
-    
+
     if (!room || !room.gameStarted) {
         callback({ success: false, error: 'Game not in progress' });
         return;
@@ -458,9 +472,14 @@ socket.on('askCard', (data, callback) => {
     
     // Make a claim
     socket.on('makeClaim', (data, callback) => {
+        if (!data || !callback) {
+            console.error('makeClaim called with invalid parameters');
+            return;
+        }
+
         const { halfSuit, assignments } = data;
         // assignments: { cardId: playerId, ... }
-        
+
         const room = rooms.get(socket.roomCode);
         if (!room || !room.gameStarted) {
             callback({ success: false, error: 'Game not in progress' });
@@ -591,9 +610,14 @@ socket.on('askCard', (data, callback) => {
     
     // Pass turn (when player has no cards)
     socket.on('passTurn', (data, callback) => {
+        if (!data || !callback) {
+            console.error('passTurn called with invalid parameters');
+            return;
+        }
+
         const { targetPlayerId } = data;
         const room = rooms.get(socket.roomCode);
-        
+
         if (!room || !room.gameStarted) {
             callback({ success: false, error: 'Game not in progress' });
             return;
@@ -660,6 +684,24 @@ socket.on('askCard', (data, callback) => {
         }
     });
 });
+
+// Cleanup abandoned rooms every 10 minutes
+setInterval(() => {
+    const now = Date.now();
+    const ROOM_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+    for (const [code, room] of rooms.entries()) {
+        // Check if all players are disconnected or if the last log entry is old
+        const allDisconnected = room.players.every(p => p.disconnected);
+        const lastLog = room.log[room.log.length - 1];
+        const isStale = lastLog && (now - lastLog.timestamp) > ROOM_TIMEOUT;
+
+        if (allDisconnected || (isStale && room.players.length === 0)) {
+            console.log(`Cleaning up abandoned room: ${code}`);
+            rooms.delete(code);
+        }
+    }
+}, 10 * 60 * 1000); // Run every 10 minutes
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

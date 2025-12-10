@@ -20,40 +20,41 @@
             <div class="turn-indicator"><span id="turnIndicator"></span></div>
         </header>
         <div class="game-main">
-            <div class="circle-container">
-                <div id="playersCircle" class="players-circle"></div>
-                <div class="center-info">
-                    <div class="half-suits-status"><h4>Half-Suits</h4><div id="halfSuitsStatus"></div></div>
+            <div class="circle-row">
+                <div class="circle-container">
+                    <div id="playersCircle" class="players-circle"></div>
                 </div>
             </div>
-            <main class="center-panel">
-                <div class="hand-section"><h3>Your Hand</h3><div id="handDisplay" class="hand-display"></div></div>
-                <div class="actions-section">
-                    <div id="askPanel" class="action-panel">
-                        <h3>Ask for a Card</h3>
-                        <div class="ask-form">
-                            <label>Ask:</label><select id="targetPlayer"></select>
-                            <label>for:</label><select id="cardToAsk"></select>
-                            <button id="askBtn" class="btn btn-primary">Ask</button>
+            <div class="content-row">
+                <main class="center-panel">
+                    <div class="hand-section"><h3>Your Hand</h3><div id="handDisplay" class="hand-display"></div></div>
+                    <div class="actions-section">
+                        <div id="askPanel" class="action-panel">
+                            <h3>Ask for a Card</h3>
+                            <div class="ask-form">
+                                <label for="targetPlayer">Ask:</label><select id="targetPlayer"></select>
+                                <label for="cardToAsk">for:</label><select id="cardToAsk"></select>
+                                <button id="askBtn" class="btn btn-primary">Ask</button>
+                            </div>
+                        </div>
+                        <div id="passPanel" class="action-panel hidden">
+                            <h3>Pass Turn</h3>
+                            <label for="passTarget">You have no cards. Pass to a teammate:</label>
+                            <select id="passTarget"></select>
+                            <button id="passBtn" class="btn btn-secondary">Pass Turn</button>
+                        </div>
+                        <div id="claimPanel" class="action-panel">
+                            <h3>Make a Claim</h3>
+                            <div class="claim-form">
+                                <label for="claimHalfSuit">Half-Suit:</label><select id="claimHalfSuit"></select>
+                                <button id="showClaimBtn" class="btn btn-claim">Set Up Claim</button>
+                            </div>
+                            <div id="claimAssignments" class="claim-assignments hidden"></div>
                         </div>
                     </div>
-                    <div id="passPanel" class="action-panel hidden">
-                        <h3>Pass Turn</h3>
-                        <p>You have no cards. Pass to a teammate:</p>
-                        <select id="passTarget"></select>
-                        <button id="passBtn" class="btn btn-secondary">Pass Turn</button>
-                    </div>
-                    <div id="claimPanel" class="action-panel">
-                        <h3>Make a Claim</h3>
-                        <div class="claim-form">
-                            <label>Half-Suit:</label><select id="claimHalfSuit"></select>
-                            <button id="showClaimBtn" class="btn btn-claim">Set Up Claim</button>
-                        </div>
-                        <div id="claimAssignments" class="claim-assignments hidden"></div>
-                    </div>
-                </div>
-            </main>
-            <aside class="log-panel"><h3>Game Log</h3><div id="gameLog" class="game-log"></div></aside>
+                </main>
+                <aside class="log-panel"><h3>Game Log</h3><div id="gameLog" class="game-log"></div></aside>
+            </div>
         </div>
         <div id="notification" class="notification hidden"></div>
         <div id="flyingCard" class="flying-card hidden"></div>

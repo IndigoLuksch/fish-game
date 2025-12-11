@@ -113,21 +113,30 @@ function getPlayerPosition(playerIndex) {
 function animateCardTransfer(fromIndex, toIndex, card) {
     const fromPos = getPlayerPosition(fromIndex);
     const toPos = getPlayerPosition(toIndex);
-    
+
     flyingCardEl.className = `flying-card ${card.suit}`;
     flyingCardEl.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${SUIT_SYMBOLS[card.suit]}</span>`;
-    
+
+    // Disable transition temporarily to set initial position instantly
+    flyingCardEl.style.transition = 'none';
+
     // Set start position
     flyingCardEl.style.left = `${fromPos.x}px`;
     flyingCardEl.style.top = `${fromPos.y}px`;
     flyingCardEl.classList.remove('hidden');
-    
+
+    // Force reflow to ensure the initial position is rendered
+    flyingCardEl.offsetHeight;
+
+    // Re-enable transition
+    flyingCardEl.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+
     // Trigger animation on next frame
     requestAnimationFrame(() => {
         flyingCardEl.style.left = `${toPos.x}px`;
         flyingCardEl.style.top = `${toPos.y}px`;
     });
-    
+
     // Hide after animation
     setTimeout(() => {
         flyingCardEl.classList.add('hidden');

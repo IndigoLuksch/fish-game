@@ -5,7 +5,7 @@ let gameState = null, myId = null;
 const CIRCLE_RADIUS = 175; // Half of 350px circle
 const CIRCLE_CENTER_X = 175;
 const CIRCLE_CENTER_Y = 175;
-const ANIMATION_DURATION = 600; // milliseconds
+const ANIMATION_DURATION = 3000; // milliseconds
 const NOTIFICATION_DURATION = 3000; // milliseconds
 
 const roomCodeEl = document.getElementById('roomCode'), score1El = document.getElementById('score1'), score2El = document.getElementById('score2');
@@ -129,7 +129,7 @@ function animateCardTransfer(fromIndex, toIndex, card) {
     flyingCardEl.offsetHeight;
 
     // Re-enable transition
-    flyingCardEl.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+    flyingCardEl.style.transition = 'all 3s cubic-bezier(0.4, 0, 0.2, 1)';
 
     // Trigger animation on next frame
     requestAnimationFrame(() => {

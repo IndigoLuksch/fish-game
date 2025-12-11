@@ -439,8 +439,8 @@ socket.on('askCard', (data, callback) => {
         
         // Emit card transfer animation BEFORE updating game state
         broadcastCardTransfer(room, targetIndex, askerIndex, transferredCard);
-        
-        // Wait a bit for animation to start before updating state
+
+        // Wait for animation to complete before updating state
         setTimeout(() => {
             asker.hand.push(transferredCard);
             // Sort hand
@@ -454,9 +454,9 @@ socket.on('askCard', (data, callback) => {
             
             addLog(room, `${asker.name} asked ${target.name} for ${cardDisplay} ✓ Got it!`, 'success');
             // Asker goes again (turn stays the same)
-            
+
             broadcastGameState(room);
-        }, 100);
+        }, 3100);
         
         callback({ success: true, got: true });
         // ========== END OF ADDITION ==========

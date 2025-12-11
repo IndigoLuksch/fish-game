@@ -48,6 +48,14 @@ socket.on('cardTransfer', (data) => {
     animateCardTransfer(data.fromIndex, data.toIndex, data.card);
 });
 
+socket.on('cardTransferFail', (data) => {
+    if (!data || data.fromIndex === undefined || data.toIndex === undefined || !data.card) {
+        console.error('Invalid card transfer fail data', data);
+        return;
+    }
+    animateCardTransferFail(data.fromIndex, data.toIndex, data.card);
+});
+
 function renderGame() {
     if (!gameState) return;
     roomCodeEl.textContent = gameState.roomCode;
@@ -140,6 +148,45 @@ function animateCardTransfer(fromIndex, toIndex, card) {
     // Hide after animation
     setTimeout(() => {
         flyingCardEl.classList.add('hidden');
+    }, ANIMATION_DURATION);
+}
+
+function animateCardTransferFail(fromIndex, toIndex, card) {
+    const fromPos = getPlayerPosition(fromIndex);
+    const toPos = getPlayerPosition(toIndex);
+
+    flyingCardEl.className = `flying-card ${card.suit}`;
+    flyingCardEl.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${SUIT_SYMBOLS[card.suit]}</span>`;
+
+    // Disable transition temporarily to set initial position instantly
+    flyingCardEl.style.transition = 'none';
+
+    // Set start position
+    flyingCardEl.style.left = `${fromPos.x}px`;
+    flyingCardEl.style.top = `${fromPos.y}px`;
+    flyingCardEl.classList.remove('hidden');
+
+    // Force reflow to ensure the initial position is rendered
+    flyingCardEl.offsetHeight;
+
+    // Re-enable transition - travel takes 2 seconds
+    flyingCardEl.style.transition = 'all 2s cubic-bezier(0.4, 0, 0.2, 1)';
+
+    // Trigger animation on next frame
+    requestAnimationFrame(() => {
+        flyingCardEl.style.left = `${toPos.x}px`;
+        flyingCardEl.style.top = `${toPos.y}px`;
+    });
+
+    // After arriving (2s), add red glow and shake for 1s
+    setTimeout(() => {
+        flyingCardEl.classList.add('card-fail');
+    }, 2000);
+
+    // Hide after full animation (3s total)
+    setTimeout(() => {
+        flyingCardEl.classList.add('hidden');
+        flyingCardEl.classList.remove('card-fail');
     }, ANIMATION_DURATION);
 }
 

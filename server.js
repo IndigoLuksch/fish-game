@@ -100,6 +100,16 @@ function broadcastCardTransfer(room, fromIndex, toIndex, card) {
     });
 }
 
+// Emit failed card transfer animation to all players
+function broadcastCardTransferFail(room, fromIndex, toIndex, card) {
+    room.players.forEach(player => {
+        const socket = io.sockets.sockets.get(player.socketId);
+        if (socket) {
+            socket.emit('cardTransferFail', { fromIndex, toIndex, card });
+        }
+    });
+}
+
 // Deal cards to players
 function dealCards(room) {
     const deck = createDeck();
@@ -461,12 +471,17 @@ socket.on('askCard', (data, callback) => {
         callback({ success: true, got: true });
         // ========== END OF ADDITION ==========
     } else {
-        // Target doesn't have the card - turn passes to target
-        addLog(room, `${asker.name} asked ${target.name} for ${cardDisplay} ✗ Don't have it`, 'fail');
-        room.currentTurn = targetIndex;
-        addLog(room, `${target.name}'s turn`, 'turn');
+        // Target doesn't have the card - show failed animation then pass turn to target
+        broadcastCardTransferFail(room, askerIndex, targetIndex, { rank, suit });
+
+        setTimeout(() => {
+            addLog(room, `${asker.name} asked ${target.name} for ${cardDisplay} ✗ Don't have it`, 'fail');
+            room.currentTurn = targetIndex;
+            addLog(room, `${target.name}'s turn`, 'turn');
+            broadcastGameState(room);
+        }, 3100);
+
         callback({ success: true, got: false });
-        broadcastGameState(room);
     }
 });
     

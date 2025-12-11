@@ -31,6 +31,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .flying-card.hearts, .flying-card.diamonds { color: #c02020; }
 .flying-card.clubs, .flying-card.spades { color: #1a1a1a; }
 .flying-card.card-fail { border: 3px solid var(--error); box-shadow: 0 0 20px rgba(224, 122, 95, 0.8), 0 4px 16px rgba(0, 0, 0, 0.6); animation: shake 0.5s ease-in-out 2; }
+.flying-card.card-fail::before { content: '✗'; position: absolute; font-size: 4rem; color: var(--error); z-index: -1; font-weight: bold; opacity: 0.6; text-shadow: 0 0 10px rgba(224, 122, 95, 0.8); }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
 
 /* ... rest of CSS continues with lobby, buttons, cards, etc ... */
